@@ -1,6 +1,7 @@
 import gym
 import random
 import time
+import numpy as np
 import matplotlib.pyplot as plt
 
 #--------------------------------------------------------------------------------------------------------------------------------
@@ -8,15 +9,15 @@ import matplotlib.pyplot as plt
 
 #Observation: (Cart position, Cart Velocity, Pole angle, Pole velocity at tip)
 #Action: right = 1, left = 0
-#Reward return 0  if pole angle more than ±12° or Cart Position is more than ±2.4  return 1 if condition are respected
+#Done return true  if pole angle more than ±12° or Cart Position is more than ±2.4  return false if condition are respected
 #Goal: having the highest reward count possible
 
 env_name = "CartPole-v1"
 nb_step = 100
-nb_story = 10
+nb_story = 20
 reward_count = []
 env = gym.make(env_name)
-env.seed(100)
+env.seed(500)
 
 for i_episode in range(nb_story): 
     observation = env.reset() # return initial value of env
@@ -25,6 +26,8 @@ for i_episode in range(nb_story):
         env.render() #start the simulation
         action = random.randint(0, 1) #Random action
         observation, reward, done, info = env.step(action) # return values
+        
+        print("Reward: " + str(reward) + " Done: " + str(done))
         
         if done: # check if simulation has failed
             reward_count.append(round(t/60, 2)) # had result into array
