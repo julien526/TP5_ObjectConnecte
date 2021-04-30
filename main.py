@@ -37,7 +37,10 @@ env.close()
 
 
 #Print result
-plt.plot(reward_count)
+title = "Longest time: " + str(max(reward_count)) + "s"
+plt.title(title)
+plt.plot(reward_count, color="red")
 plt.ylabel("Time balance")
+plt.grid(True)
 plt.show()
 
