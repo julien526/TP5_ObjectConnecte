@@ -11,7 +11,9 @@ import math
 #Observation: (Cart position, Cart Velocity, Pole angle, Pole velocity at tip)
 #Action: right = 1, left = 0
 #Done return true  if pole angle more than ±12° or Cart Position is more than ±2.4  return false if condition are respected
-#Goal: having the highest reward count possible
+#Goal: having the highest reward count possible (500 for v1 and 200 for v0)
+
+#Credit to : JackFurby https://github.com/JackFurby/CartPole-v0
 
 env_name = "CartPole-v1"
 env = gym.make(env_name)
@@ -19,7 +21,7 @@ env = gym.make(env_name)
 LEARNING_RATE = 0.1
 # Between 0 and 1, mesue of how much we carre about future reward over immedate reward
 DISCOUNT = 0.95
-RUNS = 10000  # Number of iterations run
+RUNS = 5000  # Number of iterations run
 SHOW_EVERY = 2000  # How oftern the current solution is rendered
 UPDATE_EVERY = 100  # How oftern the current progress is recorded
 
