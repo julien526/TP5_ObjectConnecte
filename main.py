@@ -39,7 +39,6 @@ def create_bins_and_q_table():
 	# env.observation_space.low
 	# [-4.8000002e+00 -3.4028235e+38 -4.1887903e-01 -3.4028235e+38]
 
-	# remove hard coded Values when I know how to
 
 	numBins = 30 # number of section
 	obsSpaceSize = len(env.observation_space.high)
