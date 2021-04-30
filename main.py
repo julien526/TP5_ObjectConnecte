@@ -15,131 +15,117 @@ import math
 
 env_name = "CartPole-v1"
 env = gym.make(env_name)
-max_step = 1000
-nb_story = 20
-
+# How much new info will override old info. 0 means nothing is learned, 1 means only most recent is considered, old knowledge is discarded
 LEARNING_RATE = 0.1
-
+# Between 0 and 1, mesue of how much we carre about future reward over immedate reward
 DISCOUNT = 0.95
-EPISODES = 60000
-total = 0
-total_reward = 0
-prior_reward = 0
+RUNS = 10000  # Number of iterations run
+SHOW_EVERY = 2000  # How oftern the current solution is rendered
+UPDATE_EVERY = 100  # How oftern the current progress is recorded
 
-Observation = [30, 30, 50, 50]
-np_array_win_size = np.array([0.25, 0.25, 0.01, 0.1])
-
-epsilon = 1
-
-epsilon_decay_value = 0.99995
-
-q_table = np.random.uniform(low=0, high=1, size=(Observation + [env.action_space.n]))
+# Exploration settings
+epsilon = 1  # not a constant, going to be decayed
+START_EPSILON_DECAYING = 1
+END_EPSILON_DECAYING = RUNS // 2
+epsilon_decay_value = epsilon / (END_EPSILON_DECAYING - START_EPSILON_DECAYING)
 
 
+# Create bins and Q table
+def create_bins_and_q_table():
+	# env.observation_space.high
+	# [4.8000002e+00 3.4028235e+38 4.1887903e-01 3.4028235e+38]
+	# env.observation_space.low
+	# [-4.8000002e+00 -3.4028235e+38 -4.1887903e-01 -3.4028235e+38]
 
-def get_discrete_state(state):
-    discrete_state = state/np_array_win_size+ np.array([15,10,1,10])
-    return tuple(discrete_state.astype(np.int))
+	# remove hard coded Values when I know how to
 
+	numBins = 20
+	obsSpaceSize = len(env.observation_space.high)
 
+	# Get the size of each bucket
+	bins = [
+		np.linspace(-4.8, 4.8, numBins),
+		np.linspace(-4, 4, numBins),
+		np.linspace(-.418, .418, numBins),
+		np.linspace(-4, 4, numBins)
+	]
 
-print("Action Space {}".format(env.action_space))
-print("State Space {}".format(env.observation_space))
+	qTable = np.random.uniform(low=-2, high=0, size=([numBins] * obsSpaceSize + [env.action_space.n]))
 
-
-for episode in range(EPISODES + 1): #go through the episodes
-    t0 = time.time() #set the initial time
-    discrete_state = get_discrete_state(env.reset()) #get the discrete start for the restarted environment 
-    done = False
-    episode_reward = 0 #reward starts as 0 for each episode
-
-    if episode % 2000 == 0: 
-        print("Episode: " + str(episode))
-
-    while not done: 
-
-        if np.random.random() > epsilon:
-
-            action = np.argmax(q_table[discrete_state]) #take cordinated action
-        else:
-
-            action = np.random.randint(0, env.action_space.n) #do a random action
-
-        new_state, reward, done, _ = env.step(action) #step action to get new states, reward, and the "done" status.
-
-        episode_reward += reward #add the reward
-
-        new_discrete_state = get_discrete_state(new_state)
-
-        if episode % 2000 == 0: #render
-            env.render()
-
-        if not done: #update q-table
-            max_future_q = np.max(q_table[new_discrete_state])
-
-            current_q = q_table[discrete_state + (action,)]
-
-            new_q = (1 - LEARNING_RATE) * current_q + LEARNING_RATE * (reward + DISCOUNT * max_future_q)
-
-            q_table[discrete_state + (action,)] = new_q
-
-        discrete_state = new_discrete_state
-
-    if epsilon > 0.05: #epsilon modification
-        if episode_reward > prior_reward and episode > 10000:
-            epsilon = math.pow(epsilon_decay_value, episode - 10000)
-
-            if episode % 500 == 0:
-                print("Epsilon: " + str(epsilon))
-
-    t1 = time.time() #episode has finished
-    episode_total = t1 - t0 #episode total time
-    total = total + episode_total
-
-    total_reward += episode_reward #episode total reward
-    prior_reward = episode_reward
-
-    if episode % 1000 == 0: #every 1000 episodes print the average time and the average reward
-        mean = total / 1000
-        print("Time Average: " + str(mean))
-        total = 0
-
-        mean_reward = total_reward / 1000
-        print("Mean Reward: " + str(mean_reward))
-        total_reward = 0
+	return bins, obsSpaceSize, qTable
 
 
+# Given a state of the enviroment, return its descreteState index in qTable
+def get_discrete_state(state, bins, obsSpaceSize):
+	stateIndex = []
+	for i in range(obsSpaceSize):
+		stateIndex.append(np.digitize(state[i], bins[i]) - 1) # -1 will turn bin into index
+	return tuple(stateIndex)
+
+
+bins, obsSpaceSize, qTable = create_bins_and_q_table()
+
+previousCnt = []  # array of all scores over runs
+metrics = {'ep': [], 'avg': [], 'min': [], 'max': []}  # metrics recorded for graph
+
+for run in range(RUNS):
+	discreteState = get_discrete_state(env.reset(), bins, obsSpaceSize)
+	done = False  # has the enviroment finished?
+	cnt = 0  # how may movements cart has made
+
+	while not done:
+		if run % SHOW_EVERY == 0:
+			env.render()  # if running RL comment this out
+
+		cnt += 1
+		# Get action from Q table
+		if np.random.random() > epsilon:
+			action = np.argmax(qTable[discreteState])
+		# Get random action
+		else:
+			action = np.random.randint(0, env.action_space.n)
+		newState, reward, done, _ = env.step(action)  # perform action on enviroment
+
+		newDiscreteState = get_discrete_state(newState, bins, obsSpaceSize)
+
+		maxFutureQ = np.max(qTable[newDiscreteState])  # estimate of optiomal future value
+		currentQ = qTable[discreteState + (action, )]  # old value
+
+		# pole fell over / went out of bounds, negative reward
+		if done and cnt < 200:
+			reward = -375
+
+		# formula to caculate all Q values
+		newQ = (1 - LEARNING_RATE) * currentQ + LEARNING_RATE * (reward + DISCOUNT * maxFutureQ)
+		qTable[discreteState + (action, )] = newQ  # Update qTable with new Q value
+
+		discreteState = newDiscreteState
+
+	previousCnt.append(cnt)
+
+	# Decaying is being done every run if run number is within decaying range
+	if END_EPSILON_DECAYING >= run >= START_EPSILON_DECAYING:
+		epsilon -= epsilon_decay_value
+
+	# Add new metrics for graph
+	if run % UPDATE_EVERY == 0:
+		latestRuns = previousCnt[-UPDATE_EVERY:]
+		averageCnt = sum(latestRuns) / len(latestRuns)
+		metrics['ep'].append(run)
+		metrics['avg'].append(averageCnt)
+		metrics['min'].append(min(latestRuns))
+		metrics['max'].append(max(latestRuns))
+		print("Run:", run, "Average:", averageCnt, "Min:", min(latestRuns), "Max:", max(latestRuns))
+
+
+env.close()
+
+# Plot graph
+plt.plot(metrics['ep'], metrics['avg'], label="average rewards")
+plt.plot(metrics['ep'], metrics['min'], label="min rewards")
+plt.plot(metrics['ep'], metrics['max'], label="max rewards")
+plt.legend(loc=4)
+plt.show()
 
 
 
-
-
-
-
-
-# for i_episode in range(nb_story): 
-#     observation = env.reset() # return initial value of env
-#     print(observation)
-
-#     for t in range(max_step): #max number of step
-#         env.render() #start the simulation
-#         action = random.randint(0, 1) #Random action
-#         observation, reward, done, info = env.step(action) # return values
-        
-        
-#         if done: # check if simulation has failed
-#             reward_count.append(round(t/60, 2)) # had result into array
-#             break
-#         time.sleep(1/60)
-    
-#     print(reward_count)
-
-# env.close()
-
-# #Print result
-# title = "Longest time: " + str(max(reward_count)) + "s"
-# plt.title(title)
-# plt.plot(reward_count, color="red")
-# plt.ylabel("Time balance")
-# plt.grid(True)
-# plt.show()
