@@ -26,7 +26,7 @@ UPDATE_EVERY = 100  # How oftern the current progress is recorded
 # Exploration settings
 epsilon = 1  # not a constant, going to be decayed
 START_EPSILON_DECAYING = 1
-END_EPSILON_DECAYING = RUNS // 2
+END_EPSILON_DECAYING = RUNS // 10
 epsilon_decay_value = epsilon / (END_EPSILON_DECAYING - START_EPSILON_DECAYING)
 
 
@@ -39,11 +39,11 @@ def create_bins_and_q_table():
 
 	# remove hard coded Values when I know how to
 
-	numBins = 20
+	numBins = 30 # number of section
 	obsSpaceSize = len(env.observation_space.high)
 
 	# Get the size of each bucket
-	bins = [
+	bins = [ #create range for each values
 		np.linspace(-4.8, 4.8, numBins),
 		np.linspace(-4, 4, numBins),
 		np.linspace(-.418, .418, numBins),
@@ -115,7 +115,7 @@ for run in range(RUNS):
 		metrics['avg'].append(averageCnt)
 		metrics['min'].append(min(latestRuns))
 		metrics['max'].append(max(latestRuns))
-		print("Run:", run, "Average:", averageCnt, "Min:", min(latestRuns), "Max:", max(latestRuns))
+		print("Run:", run, "Average:", averageCnt, "Min:", min(latestRuns), "Max:", max(latestRuns), "Epsilon", epsilon)
 
 
 env.close()
