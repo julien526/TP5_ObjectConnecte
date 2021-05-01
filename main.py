@@ -17,13 +17,12 @@ import math
 
 env_name = "CartPole-v1"
 env = gym.make(env_name)
-# How much new info will override old info. 0 means nothing is learned, 1 means only most recent is considered, old knowledge is discarded
-LEARNING_RATE = 0.1
-# Between 0 and 1, mesue of how much we carre about future reward over immedate reward
-DISCOUNT = 0.95
-RUNS = 8000  # Number of iterations run
-SHOW_EVERY = 1000  # How oftern the current solution is rendered
-UPDATE_EVERY = 200  # How oftern the current progress is recorded
+
+LEARNING_RATE = 0.1 # How much new info will override old info. 0 means nothing is learned, 1 means only most recent is considered, old knowledge is discarded  ** #Note for Later try with decay **
+DISCOUNT = 0.95 # Between 0 and 1, mesure of how much we care about future reward over immediate reward
+RUNS = 8000  # Number of  run
+SHOW_EVERY = 1000  # How often the current solution is rendered
+UPDATE_EVERY = 200  # How often the current progress is recorded
 
 # Exploration settings
 epsilon = 1  # not a constant, going to be decayed
@@ -41,7 +40,7 @@ def create_bins_and_q_table():
 
 
 	numBins = 20 # number of section
-	obsSpaceSize = len(env.observation_space.high)
+	num_of_observation = len(env.observation_space.high)
 
 	# Get the size of each bucket
 	bins = [ #create range for each values
@@ -51,27 +50,27 @@ def create_bins_and_q_table():
 		np.linspace(-4, 4, numBins)
 	]
 
-	qTable = np.random.uniform(low=-2, high=0, size=([numBins] * obsSpaceSize + [env.action_space.n]))
+	qTable = np.random.uniform(low=-2, high=0, size=([numBins] * num_of_observation + [env.action_space.n]))
 
-	return bins, obsSpaceSize, qTable
+	return bins, num_of_observation, qTable
 
 
 # Given a state of the enviroment, return its descreteState index in qTable
-def get_discrete_state(state, bins, obsSpaceSize):
+def get_discrete_state(state, bins, num_of_observation):
 	stateIndex = []
-	for i in range(obsSpaceSize):
+	for i in range(num_of_observation):
 		stateIndex.append(np.digitize(state[i], bins[i]) -1 ) # -1 will turn bin into index
 	return tuple(stateIndex)
 
 
-bins, obsSpaceSize, qTable = create_bins_and_q_table()
+bins, num_of_observation, qTable = create_bins_and_q_table()
 
 previousCnt = []  # array of all scores over runs
 metrics = {'ep': [], 'avg': [], 'min': [], 'max': []}  # metrics recorded for graph
 
 for run in range(RUNS):
     
-	discreteState = get_discrete_state(env.reset(), bins, obsSpaceSize)
+	discreteState = get_discrete_state(env.reset(), bins, num_of_observation)
 	done = False  # has the enviroment finished?
 	cnt = 0  # how many frames as been done
 
@@ -82,28 +81,28 @@ for run in range(RUNS):
 		cnt += 1
 		#Epsilon-Greedy Algorithm | exploration or exploitation
 		if np.random.random() > epsilon:
-			action = np.argmax(qTable[discreteState]) # Get action from Q table
+			action = np.argmax(qTable[discreteState]) # Get action from Q table ** exploitation **
 		else:
-			action = np.random.randint(0, env.action_space.n) # Get random action
+			action = np.random.randint(0, env.action_space.n) # Get random action ** exploration **
    
 		newState, reward, done, _ = env.step(action)  # perform action on enviroment
 
-		newDiscreteState = get_discrete_state(newState, bins, obsSpaceSize)
+		newDiscreteState = get_discrete_state(newState, bins, num_of_observation) # get index of futur q
 
-		maxFutureQ = np.max(qTable[newDiscreteState])  # estimate of optiomal future value
+		maxFutureQ = np.max(qTable[newDiscreteState])  # value of future q
 		currentQ = qTable[discreteState + (action, )]  # old value
 
 		# pole fell over / went out of bounds, negative reward
-		if done and cnt < 500:
+		if done and cnt < 499:
 			reward = -375
 
 		# formula to caculate all Q values
 		newQ = (1 - LEARNING_RATE) * currentQ + LEARNING_RATE * (reward + DISCOUNT * maxFutureQ) #modified formula
 		#newQ = currentQ + LEARNING_RATE * reward + DISCOUNT * maxFutureQ - currentQ #Basic formula
-		newq_index = discreteState + (action, )
+		newq_index = discreteState + (action, ) # index of new q
 		qTable[newq_index] = newQ  # Update qTable with new Q value
 
-		discreteState = newDiscreteState
+		discreteState = newDiscreteState # update index of state
 
 	previousCnt.append(cnt)
 
@@ -128,6 +127,7 @@ env.close()
 plt.plot(metrics['ep'], metrics['avg'], label="average rewards")
 plt.plot(metrics['ep'], metrics['min'], label="min rewards")
 plt.plot(metrics['ep'], metrics['max'], label="max rewards")
+plt.grid(True)
 plt.legend(loc=4)
 plt.show()
 
