@@ -21,15 +21,15 @@ env = gym.make(env_name)
 LEARNING_RATE = 0.1
 # Between 0 and 1, mesue of how much we carre about future reward over immedate reward
 DISCOUNT = 0.95
-RUNS = 5000  # Number of iterations run
-SHOW_EVERY = 2000  # How oftern the current solution is rendered
-UPDATE_EVERY = 100  # How oftern the current progress is recorded
+RUNS = 8000  # Number of iterations run
+SHOW_EVERY = 1000  # How oftern the current solution is rendered
+UPDATE_EVERY = 200  # How oftern the current progress is recorded
 
 # Exploration settings
 epsilon = 1  # not a constant, going to be decayed
-START_EPSILON_DECAYING = 1
-END_EPSILON_DECAYING = RUNS // 10
-epsilon_decay_value = epsilon / (END_EPSILON_DECAYING - START_EPSILON_DECAYING)
+START_EPSILON_DECAYING = 100
+END_EPSILON_DECAYING = 3400 #RUNS // 1.3
+epsilon_decay_value =  0.00025 #epsilon / (END_EPSILON_DECAYING - START_EPSILON_DECAYING)
 
 
 # Create bins and Q table
@@ -40,7 +40,7 @@ def create_bins_and_q_table():
 	# [-4.8000002e+00 -3.4028235e+38 -4.1887903e-01 -3.4028235e+38]
 
 
-	numBins = 30 # number of section
+	numBins = 20 # number of section
 	obsSpaceSize = len(env.observation_space.high)
 
 	# Get the size of each bucket
@@ -60,7 +60,7 @@ def create_bins_and_q_table():
 def get_discrete_state(state, bins, obsSpaceSize):
 	stateIndex = []
 	for i in range(obsSpaceSize):
-		stateIndex.append(np.digitize(state[i], bins[i]) - 1) # -1 will turn bin into index
+		stateIndex.append(np.digitize(state[i], bins[i]) -1 ) # -1 will turn bin into index
 	return tuple(stateIndex)
 
 
@@ -70,21 +70,22 @@ previousCnt = []  # array of all scores over runs
 metrics = {'ep': [], 'avg': [], 'min': [], 'max': []}  # metrics recorded for graph
 
 for run in range(RUNS):
+    
 	discreteState = get_discrete_state(env.reset(), bins, obsSpaceSize)
 	done = False  # has the enviroment finished?
-	cnt = 0  # how may movements cart has made
+	cnt = 0  # how many frames as been done
 
 	while not done:
 		if run % SHOW_EVERY == 0:
-			env.render()  # if running RL comment this out
+			env.render()  # show the cart at chosen interval
 
 		cnt += 1
-		# Get action from Q table
+		#Epsilon-Greedy Algorithm | exploration or exploitation
 		if np.random.random() > epsilon:
-			action = np.argmax(qTable[discreteState])
-		# Get random action
+			action = np.argmax(qTable[discreteState]) # Get action from Q table
 		else:
-			action = np.random.randint(0, env.action_space.n)
+			action = np.random.randint(0, env.action_space.n) # Get random action
+   
 		newState, reward, done, _ = env.step(action)  # perform action on enviroment
 
 		newDiscreteState = get_discrete_state(newState, bins, obsSpaceSize)
@@ -93,12 +94,14 @@ for run in range(RUNS):
 		currentQ = qTable[discreteState + (action, )]  # old value
 
 		# pole fell over / went out of bounds, negative reward
-		if done and cnt < 200:
+		if done and cnt < 500:
 			reward = -375
 
 		# formula to caculate all Q values
-		newQ = (1 - LEARNING_RATE) * currentQ + LEARNING_RATE * (reward + DISCOUNT * maxFutureQ)
-		qTable[discreteState + (action, )] = newQ  # Update qTable with new Q value
+		newQ = (1 - LEARNING_RATE) * currentQ + LEARNING_RATE * (reward + DISCOUNT * maxFutureQ) #modified formula
+		#newQ = currentQ + LEARNING_RATE * reward + DISCOUNT * maxFutureQ - currentQ #Basic formula
+		newq_index = discreteState + (action, )
+		qTable[newq_index] = newQ  # Update qTable with new Q value
 
 		discreteState = newDiscreteState
 
