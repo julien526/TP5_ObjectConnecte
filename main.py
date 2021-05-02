@@ -18,17 +18,18 @@ import math
 env_name = "CartPole-v1"
 env = gym.make(env_name)
 
-LEARNING_RATE = 0.1 # How much new info will override old info. 0 means nothing is learned, 1 means only most recent is considered, old knowledge is discarded  ** #Note for Later try with decay **
-DISCOUNT = 0.95 # Between 0 and 1, mesure of how much we care about future reward over immediate reward
+LEARNING_RATE = 0.5 # How much new info will override old info. 0 means nothing is learned, 1 means only most recent is considered, old knowledge is discarded  ** #Note for Later try with decay **
+LEARNING_RATE_DECAY = 0.0001
+DISCOUNT = 0.9 # Between 0 and 1, mesure of how much we care about future reward over immediate reward
 RUNS = 8000  # Number of  run
 SHOW_EVERY = 1000  # How often the current solution is rendered
 UPDATE_EVERY = 200  # How often the current progress is recorded
 
 # Exploration settings
 epsilon = 1  # not a constant, going to be decayed
-START_EPSILON_DECAYING = 100
-END_EPSILON_DECAYING = 3400 #RUNS // 1.3
-epsilon_decay_value =  0.00025 #epsilon / (END_EPSILON_DECAYING - START_EPSILON_DECAYING)
+START_EPSILON_DECAYING = 1
+END_EPSILON_DECAYING = 4000 #RUNS // 1.3
+epsilon_decay_value =  0.00022 #epsilon / (END_EPSILON_DECAYING - START_EPSILON_DECAYING)
 
 
 # Create bins and Q table
@@ -39,7 +40,7 @@ def create_bins_and_q_table():
 	# [-4.8000002e+00 -3.4028235e+38 -4.1887903e-01 -3.4028235e+38]
 
 
-	numBins = 20 # number of section
+	numBins = 10 # number of section
 	num_of_observation = len(env.observation_space.high)
 
 	# Get the size of each bucket
@@ -109,6 +110,7 @@ for run in range(RUNS):
 	# Decaying is being done every run if run number is within decaying range
 	if END_EPSILON_DECAYING >= run >= START_EPSILON_DECAYING:
 		epsilon -= epsilon_decay_value
+		LEARNING_RATE -=LEARNING_RATE_DECAY
 
 	# Add new metrics for graph
 	if run % UPDATE_EVERY == 0:
@@ -118,7 +120,7 @@ for run in range(RUNS):
 		metrics['avg'].append(averageCnt)
 		metrics['min'].append(min(latestRuns))
 		metrics['max'].append(max(latestRuns))
-		print("Run:", run, "Average:", averageCnt, "Min:", min(latestRuns), "Max:", max(latestRuns), "Epsilon", epsilon)
+		print("Run:", run, "Average:", averageCnt, "Min:", min(latestRuns), "Max:", max(latestRuns), "Epsilon", epsilon, "Learning rate:", LEARNING_RATE)
 
 
 env.close()
