@@ -19,11 +19,17 @@ Bref description des variables importantes:
     - START_DECAYING / STOP_DECAYING : Début et fin de la période de décroissance 
     - DISCOUNT :  multiplicateur qui indique l'importance de la valeur future entre 0 et 1
     - numBins : Nombre de sections pour les observations
-    - qTable : Tableaux des prédictions
+    - qTable : Tableaux contenant les probilité pour la meilleur action possibles pour chaque états
 
 Functionnement:
     1 - instanciation de la q-table avec des valeurs aléatoires entre 0 et -2
     2 - réinitialisation de l'environnemnt, nous retourne un état aléatoire
     3 - Selon la valeur du epsilon va faire une action aléatoire ou une action de la q-table
-    4 - fait l'action et prend l'état en temps que état future
-    5 - va chercher 
+    4 - Va chercher l'état future
+    5 - Va chercher les valeurs de la qtable pour l'état présent et l'état future
+    6 - Calcule une nouvelle probabilté pour l'action faite et la remplace dans la q-table
+    7 - Si la condition d'échec n'a pas été activé
+
+
+
+    ----------------------------------------------    
