@@ -18,7 +18,7 @@ import math
 env_name = "CartPole-v1"
 env = gym.make(env_name)
 
-LEARNING_RATE = 0.5 # How much new info will override old info. 0 means nothing is learned, 1 means only most recent is considered, old knowledge is discarded  ** #Note for Later try with decay **
+LEARNING_RATE = 0.5 # How much new info will override old info. 0 means nothing is learned, 1 means only most recent is considered, old knowledge is discarded
 LEARNING_RATE_DECAY = 0.0001
 DISCOUNT = 0.9 # Between 0 and 1, mesure of how much we care about future reward over immediate reward
 RUNS = 8000  # Number of  run
@@ -27,9 +27,9 @@ UPDATE_EVERY = 200  # How often the current progress is recorded
 
 # Exploration settings
 epsilon = 1  # not a constant, going to be decayed
-START_EPSILON_DECAYING = 1
-END_EPSILON_DECAYING = 4000 #RUNS // 1.3
-epsilon_decay_value =  0.00022 #epsilon / (END_EPSILON_DECAYING - START_EPSILON_DECAYING)
+START_DECAYING = 1
+END_DECAYING = 4000 #RUNS // 1.3
+epsilon_decay_value =  0.00022 #epsilon / (END_DECAYING - START_DECAYING)
 
 
 # Create bins and Q table
@@ -108,7 +108,7 @@ for run in range(RUNS):
 	previousCnt.append(cnt)
 
 	# Decaying is being done every run if run number is within decaying range
-	if END_EPSILON_DECAYING >= run >= START_EPSILON_DECAYING:
+	if END_DECAYING >= run >= START_DECAYING:
 		epsilon -= epsilon_decay_value
 		LEARNING_RATE -=LEARNING_RATE_DECAY
 
