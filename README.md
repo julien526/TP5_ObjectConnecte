@@ -4,6 +4,8 @@ Explication de l'apprentissage par renforcement avec Open AI gym
 
 Environnement choisi: Cartpole-v1
 
+Credit to : JackFurby https://github.com/JackFurby/CartPole-v0
+
 Bref description de l'environnement
 
 - Condtion de réussite: Réussir à garder un baton à la vertical stable pendant 500 frames (Cartpole-v1) ou 200 (cartpole-v0)
