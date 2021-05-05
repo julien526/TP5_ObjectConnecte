@@ -4,6 +4,7 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 import math
+import json
 
 #--------------------------------------------------------------------------------------------------------------------------------
 #CARTPOLE reinforcement learning
@@ -18,18 +19,30 @@ import math
 env_name = "CartPole-v1"
 env = gym.make(env_name)
 
-LEARNING_RATE = 0.5 # How much new info will override old info. 0 means nothing is learned, 1 means only most recent is considered, old knowledge is discarded
-LEARNING_RATE_DECAY = 0.0001
-DISCOUNT = 0.9 # Between 0 and 1, mesure of how much we care about future reward over immediate reward
-RUNS = 8000  # Number of  run
-SHOW_EVERY = 1000  # How often the current solution is rendered
-UPDATE_EVERY = 200  # How often the current progress is recorded
 
-# Exploration settings
-epsilon = 1  # not a constant, going to be decayed
+
+use_qtable = True
+train_model = False
+model_name = "base_model"
+
+DISCOUNT = 0.9 # Between 0 and 1, mesure of how much we care about future reward over immediate reward
+RUNS = 2000  # Number of  run
+SHOW_EVERY = 500  # How often the current solution is rendered
+UPDATE_EVERY = 100  # How often the current progress is recorded
 START_DECAYING = 1
 END_DECAYING = 4000 #RUNS // 1.3
-epsilon_decay_value =  0.00022 #epsilon / (END_DECAYING - START_DECAYING)
+
+if not train_model:
+	LEARNING_RATE = 0.1
+	LEARNING_RATE_DECAY = 0
+	epsilon = 0.1
+	epsilon_decay_value = 0
+ 
+else:
+    LEARNING_RATE = 0.5 # How much new info will override old info. 0 means nothing is learned, 1 means only most recent is considered, old knowledge is discarded
+    LEARNING_RATE_DECAY = 0.0001
+    epsilon =1 #not a constant, going to be decayed
+    epsilon_decay_value = 0.00022
 
 
 # Create bins and Q table
@@ -51,7 +64,12 @@ def create_bins_and_q_table():
 		np.linspace(-4, 4, numBins)
 	]
 
-	qTable = np.random.uniform(low=-2, high=0, size=([numBins] * num_of_observation + [env.action_space.n]))
+	if use_qtable:
+		reader = open("QTable/" + model_name, "r")
+		deserialize_data = np.array(json.loads(reader.read()))
+		qTable = deserialize_data
+	else:
+		qTable = np.random.uniform(low=-2, high=0, size=([numBins] * num_of_observation + [env.action_space.n]))
 
 	return bins, num_of_observation, qTable
 
@@ -67,7 +85,7 @@ def get_discrete_state(state, bins, num_of_observation):
 bins, num_of_observation, qTable = create_bins_and_q_table()
 
 previousCnt = []  # array of all scores over runs
-metrics = {'ep': [], 'avg': [], 'min': [], 'max': []}  # metrics recorded for graph
+metrics = {'ep': [], 'avg': [], 'min': [], 'max': [], 'win':[]}  # metrics recorded for graph
 
 for run in range(RUNS):
     
@@ -115,23 +133,48 @@ for run in range(RUNS):
 	# Add new metrics for graph
 	if run % UPDATE_EVERY == 0:
 		latestRuns = previousCnt[-UPDATE_EVERY:]
+		number_of_win = latestRuns.count(500)
 		averageCnt = sum(latestRuns) / len(latestRuns)
 		metrics['ep'].append(run)
 		metrics['avg'].append(averageCnt)
 		metrics['min'].append(min(latestRuns))
 		metrics['max'].append(max(latestRuns))
-		print("Run:", run, "Average:", averageCnt, "Min:", min(latestRuns), "Max:", max(latestRuns), "Epsilon", epsilon, "Learning rate:", LEARNING_RATE)
+		metrics['win'].append(number_of_win)
+		print("Run:", run, "Average:", averageCnt, "Min:", min(latestRuns), "Max:", max(latestRuns), "number_of_win", number_of_win, "Epsilon", epsilon, "Learning rate:", LEARNING_RATE)
 
 
 env.close()
 
+
+
+
+
+
 # Plot graph
-plt.plot(metrics['ep'], metrics['avg'], label="average rewards")
-plt.plot(metrics['ep'], metrics['min'], label="min rewards")
-plt.plot(metrics['ep'], metrics['max'], label="max rewards")
-plt.grid(True)
-plt.legend(loc=4)
+fig, (ax1, ax2) = plt.subplots(2)
+fig.suptitle('Results')
+ax1.plot(metrics['ep'], metrics['avg'], label="average rewards")
+ax1.plot(metrics['ep'], metrics['min'], label="min rewards")
+ax1.plot(metrics['ep'], metrics['max'], label="max rewards")
+ax1.legend(loc=4)
+ax1.grid(True)
+ax2.plot(range(1, RUNS//UPDATE_EVERY + 1), metrics['win'], label="Number of win")
+ax2.set_xlabel('Segement of ' + str(UPDATE_EVERY) + " episodes")
+ax2.grid(True)
+ax2.legend(loc=4)
 plt.show()
+
+
+
+env.close()
+
+serialize_data = json.dumps(qTable.tolist())
+
+
+writer = open("QTable/" + model_name, "w+")
+writer.write(serialize_data)
+
+
 
 
 
