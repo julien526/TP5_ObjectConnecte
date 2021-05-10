@@ -5,7 +5,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 import json
-
+import os
+import sys
 #--------------------------------------------------------------------------------------------------------------------------------
 #CARTPOLE reinforcement learning
 
@@ -18,7 +19,8 @@ import json
 
 env_name = "CartPole-v1"
 env = gym.make(env_name)
-
+dirname = os.path.dirname(__file__)
+print(dirname)
 
 
 use_qtable = True
@@ -65,7 +67,8 @@ def create_bins_and_q_table():
 	]
 
 	if use_qtable:
-		reader = open("QTable/" + model_name, "r")
+		#reader = open("../QTable/" + model_name, "r")
+		reader = open(dirname +"/QTable/" + model_name, "r")
 		deserialize_data = np.array(json.loads(reader.read()))
 		qTable = deserialize_data
 	else:
@@ -171,7 +174,7 @@ env.close()
 serialize_data = json.dumps(qTable.tolist())
 
 
-writer = open("QTable/" + model_name, "w+")
+writer = open(dirname +"/QTable/" + model_name, "w+")
 writer.write(serialize_data)
 
 
